@@ -1,0 +1,50 @@
+# python -m tiktok_video render examples/storyboard.yaml -o out/tips.mp4
+video:
+  fps: 30
+  # font: assets/fonts/Kanit-Bold.ttf   # ใส่ฟอนต์ไทยที่ชอบ (path relative กับไฟล์นี้)
+  # bgm: music.mp3                      # เพลงประกอบ (loop + fade out อัตโนมัติ)
+  bgm_volume: 0.25
+  progress_bar: "#FFD54A"
+
+defaults:
+  duration: 3.0
+  background:
+    gradient: ["#0B0F1A", "#1C2440"]
+
+scenes:
+  - title: "3 กฎ Scalping ทองคำ"
+    text: "XAUUSD M1 / M5"
+    caption: "ข้อ 3 สำคัญที่สุด"
+    duration: 2.5
+
+  - title: "1. ดู Spread ก่อนเข้า"
+    text: "Spread เกิน 25 points\nข้ามไม้นั้นทันที"
+    # voice: voice/01.mp3   # ถ้าใส่ voice และไม่ใส่ duration -> ยาวเท่าเสียง + 0.4s
+
+  - title: "2. หลบข่าวแรง"
+    text: "NFP / CPI / FOMC\nปิด EA ก่อน-หลัง 15 นาที"
+
+  - title: "3. SL ต้องมีทุกไม้"
+    elements:
+      - type: text
+        text: "Risk ต่อไม้ไม่เกิน"
+        size: 64
+        y: 0.44
+        anim: fade
+        delay: 0.2
+      - type: counter
+        from: 0
+        to: 1
+        decimals: 1
+        suffix: "%"
+        size: 170
+        y: 0.56
+        color: "#2EE59D"
+        anim: pop
+        delay: 0.4
+        count_duration: 1.0
+
+  - title: "กดติดตาม"
+    text: "แจกผลเทรด EA ทุกวัน"
+    background: "#000000"
+    duration: 2.2
