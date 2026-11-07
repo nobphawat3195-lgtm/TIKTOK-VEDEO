@@ -1,0 +1,5 @@
+Pillow>=10.0
+numpy>=1.24
+PyYAML>=6.0
+# optional: ตัดคำไทยแบบ dictionary (wrap บรรทัดสวยกว่า)
+# pythainlp>=5.0
