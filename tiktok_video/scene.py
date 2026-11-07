@@ -8,6 +8,7 @@ from typing import Callable
 import numpy as np
 from PIL import Image, ImageColor, ImageDraw, ImageOps
 
+from .chart import generate_candles, render_chart
 from .storyboard import Element, Scene, Storyboard
 from .text import load_font, wrap
 
@@ -128,6 +129,23 @@ def build_layer(el: Element, sb: Storyboard) -> Layer:
             return cache[txt]
 
         return Layer(el, None, dyn)
+    if el.type == "chart":
+        candles = [tuple(c) for c in el.get("candles") or generate_candles(
+            int(el.get("n", 40)), float(el.get("start", 2650)), int(el.get("seed", 7)),
+            float(el.get("drift", 0.0)), float(el.get("vol", 2.2)))]
+        size = (int(sb.width * float(el.get("width", 0.96))),
+                int(sb.height * float(el.get("height", 0.46))))
+        delay, dur = float(el.get("delay", 0)), float(el.get("reveal_duration", 4.0))
+
+        def dyn_chart(t: float) -> Image.Image:
+            p = min(1.0, max(0.0, (t - delay) / dur))
+            return render_chart(candles, p, size, levels=el.get("levels"),
+                                symbol=el.get("symbol", "XAUUSD"),
+                                timeframe=el.get("timeframe", "M5"),
+                                font_path=sb.resolve(el.get("font")) or sb.resolve(sb.font),
+                                t_label=el.get("time_label", ""))
+
+        return Layer(el, None, dyn_chart)
     raise ValueError(f"ไม่รู้จัก element type: {el.type}")
 
 
@@ -196,3 +214,43 @@ def draw_progress(frame: Image.Image, progress: float, color: str) -> None:
 
 def frames_for(duration: float, fps: int) -> int:
     return max(1, int(math.ceil(duration * fps)))
+
+
+# ---------------------------------------------------------------------- lint
+# TikTok overlays the right rail (like/comment/share) and bottom caption area.
+SAFE_RIGHT = 0.14
+SAFE_BOTTOM = 0.18
+SAFE_TOP = 0.06
+
+
+def lint_scene(scene: Scene, sb: Storyboard, duration: float, index: int) -> list[str]:
+    """Return human-readable problems: off-frame, overlapping, or in TikTok UI zones."""
+    r = SceneRenderer(scene, sb, duration)
+    w, h = sb.width, sb.height
+    boxes = []
+    for n, layer in enumerate(r.layers):
+        img = layer.image_at(duration)  # fully-revealed state
+        cx = float(layer.el.get("x", 0.5)) * w
+        cy = float(layer.el.get("y", 0.5)) * h
+        boxes.append((n, layer.el, (cx - img.width / 2, cy - img.height / 2,
+                                    cx + img.width / 2, cy + img.height / 2)))
+    issues: list[str] = []
+    tag = f"scene {index + 1}"
+    for n, el, (x0, y0, x1, y1) in boxes:
+        name = f"{el.type}#{n + 1}"
+        if x0 < 0 or y0 < 0 or x1 > w or y1 > h:
+            issues.append(f"{tag} {name}: ล้นขอบเฟรม ({x0:.0f},{y0:.0f})-({x1:.0f},{y1:.0f})")
+        elif el.type in ("text", "counter") and (x1 > w * (1 - SAFE_RIGHT) or y1 > h * (1 - SAFE_BOTTOM)
+                                                  or y0 < h * SAFE_TOP):
+            issues.append(f"{tag} {name}: ทับโซน UI ของ TikTok (ขวา/ล่าง/บน)")
+    for i in range(len(boxes)):
+        for j in range(i + 1, len(boxes)):
+            a, b = boxes[i][2], boxes[j][2]
+            if min(a[2], b[2]) - max(a[0], b[0]) > 2 and min(a[3], b[3]) - max(a[1], b[1]) > 2:
+                issues.append(f"{tag} {boxes[i][1].type}#{boxes[i][0] + 1} ทับ "
+                              f"{boxes[j][1].type}#{boxes[j][0] + 1}")
+    if index == 0:  # hook: something readable must be on screen within 2s
+        first = min((float(e.get("delay", 0)) for _, e, _ in boxes), default=99)
+        if first > 0.5:
+            issues.append(f"{tag}: hook ช้า — element แรกขึ้นที่ {first:.1f}s (ต้อง ≤0.5s, อย่างช้า ≤2s)")
+    return issues

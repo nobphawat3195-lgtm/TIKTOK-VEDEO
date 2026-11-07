@@ -1,0 +1,24 @@
+# python -m tiktok_video lint examples/chart_demo.yaml && python -m tiktok_video render examples/chart_demo.yaml -o out/chart_demo.mp4
+# ข้อมูลแท่งเทียนเป็นภาพประกอบ (สุ่มแบบ seeded) ไม่ใช่ราคาจริง
+video: { fps: 30, progress_bar: "#2962FF" }
+scenes:
+  - duration: 7
+    background: "#0B0E14"
+    elements:
+      - { type: text, text: "ทองหลุดแนวรับ?", size: 92, y: 0.17, anim: pop, color: "#FFFFFF" }
+      - type: chart
+        symbol: XAUUSD
+        timeframe: M5
+        n: 42
+        seed: 11
+        drift: 0.25
+        y: 0.5
+        width: 0.94
+        height: 0.44
+        delay: 0.1
+        reveal_duration: 5
+        time_label: "ภาพประกอบ"
+        levels:
+          - { price: 2640, label: "แนวรับ", color: "#FFB74D", from_candle: 8 }
+      - { type: text, text: "ดูตรงนี้ก่อนเข้าออเดอร์", size: 60, y: 0.765, color: "#FFD54A",
+          anim: slide_up, delay: 1.0, box: "#000000AA" }
