@@ -19,6 +19,19 @@ def _cmd_still(a: argparse.Namespace) -> None:
     print(renderer.render_still(sb, a.scene - 1, a.t, a.output))
 
 
+def _cmd_lint(a: argparse.Namespace) -> None:
+    from .scene import lint_scene
+
+    sb = storyboard.load(a.storyboard)
+    durs = renderer.plan_durations(sb)
+    problems = [m for i, (sc, d) in enumerate(zip(sb.scenes, durs))
+                for m in lint_scene(sc, sb, d, i)]
+    for m in problems:
+        print("✗", m)
+    print("ผ่านทุกข้อ ✓" if not problems else f"พบ {len(problems)} ปัญหา")
+    sys.exit(1 if problems else 0)
+
+
 def _cmd_recap(a: argparse.Namespace) -> None:
     deals = recap.load_deals(a.csv, symbol=a.symbol)
     stats = recap.compute_stats(deals)
@@ -51,6 +64,10 @@ def main(argv: list[str] | None = None) -> None:
     s.add_argument("-o", "--output", default="out/still.png")
     s.set_defaults(fn=_cmd_still)
 
+    ln = sub.add_parser("lint", help="ตรวจข้อความล้นขอบ/ทับกัน/ทับ UI TikTok/hook ช้า")
+    ln.add_argument("storyboard")
+    ln.set_defaults(fn=_cmd_lint)
+
     c = sub.add_parser("recap", help="สร้างคลิปสรุปผลเทรดจาก CSV ที่ export จาก MT5")
     c.add_argument("csv")
     c.add_argument("-o", "--output", default="out/recap.mp4")
@@ -64,7 +81,8 @@ def main(argv: list[str] | None = None) -> None:
     c.set_defaults(fn=_cmd_recap)
 
     a = p.parse_args(argv)
-    Path(getattr(a, "output", "out/x")).parent.mkdir(parents=True, exist_ok=True)
+    if hasattr(a, "output"):
+        Path(a.output).parent.mkdir(parents=True, exist_ok=True)
     a.fn(a)
 
 

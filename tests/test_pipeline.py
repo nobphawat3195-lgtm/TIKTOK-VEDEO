@@ -102,3 +102,39 @@ def test_recap_storyboard_still(tmp_path):
     for i in range(len(sb.scenes)):
         img = render_still(sb, i, 2.0, tmp_path / f"{i}.png")
         assert img.exists()
+
+
+def test_chart_renders_and_reveals_progressively():
+    from tiktok_video.chart import generate_candles, render_chart
+
+    c = generate_candles(30, seed=3)
+    assert c == generate_candles(30, seed=3)  # deterministic
+    a = render_chart(c, 0.2, (900, 700))
+    b = render_chart(c, 1.0, (900, 700))
+    assert a.size == b.size == (900, 700) and a.mode == "RGBA"
+    assert a.tobytes() != b.tobytes()
+
+
+def test_lint_flags_overlap_overflow_and_slow_hook():
+    from tiktok_video.renderer import plan_durations
+    from tiktok_video.scene import lint_scene
+
+    sb = from_dict({"video": {"width": 540, "height": 960}, "scenes": [{
+        "duration": 2, "elements": [
+            {"type": "text", "text": "A", "y": 0.4, "delay": 1.5},
+            {"type": "text", "text": "B", "y": 0.4},
+            {"type": "text", "text": "ข้อความยาวมากๆ" * 1, "size": 400, "y": 0.5, "max_width": 5000},
+        ]}]})
+    msgs = lint_scene(sb.scenes[0], sb, plan_durations(sb)[0], 0)
+    joined = "\n".join(msgs)
+    assert "ทับ" in joined and "ล้นขอบ" in joined
+
+
+def test_lint_clean_example():
+    from tiktok_video import load
+    from tiktok_video.renderer import plan_durations
+    from tiktok_video.scene import lint_scene
+
+    sb = load(ROOT / "examples" / "chart_demo.yaml")
+    for i, (sc, d) in enumerate(zip(sb.scenes, plan_durations(sb))):
+        assert lint_scene(sc, sb, d, i) == []

@@ -64,6 +64,20 @@ Prop ของ text: `size, color, stroke, stroke_color, box (#RRGGBBAA), align,
 ส่วน `x`/`y` เป็นสัดส่วนของจอ (0–1) และเป็นจุดกึ่งกลางของ element ควรวางเนื้อหาสำคัญไว้ที่ `y` ไม่เกิน 0.75
 และเว้นขอบขวาไว้ เพราะ UI ของ TikTok จะทับส่วนนั้น
 
+### 3. ฉากกราฟสไตล์ TradingView + ตรวจคุณภาพก่อน render
+
+```bash
+python -m tiktok_video lint   examples/chart_demo.yaml    # exit 1 ถ้ามีปัญหา
+python -m tiktok_video render examples/chart_demo.yaml -o out/chart_demo.mp4
+```
+
+`type: chart` วาดแท่งเทียนทีละแท่ง (dark theme, กริด, แกนราคาขวา, ป้ายราคาล่าสุด, เส้นแนวรับ/แนวต้านแบบประ)
+ให้ข้อมูลเองด้วย `candles: [[o,h,l,c], ...]` หรือใช้ตัวสุ่ม seeded (`n, seed, start, drift, vol`) —
+ข้อมูลสุ่มเป็นภาพประกอบ ควรใส่ `time_label: "ภาพประกอบ"` เสมอ ห้ามนำเสนอเป็นราคาจริง
+
+`lint` ตรวจ: ข้อความล้นขอบเฟรม, element ทับกัน, ทับโซน UI ของ TikTok (ขวา 14% / ล่าง 18% / บน 6%),
+และ hook ช้า (element แรกต้องขึ้นภายใน 0.5 วินาที)
+
 ## Test
 
 ```bash
